@@ -1,4 +1,4 @@
-import type { Row } from "../../domain/game"
+import type { Row } from "../../domain/row"
 import { CellTd } from "./CellTd"
 
 type RowTrProps = {
