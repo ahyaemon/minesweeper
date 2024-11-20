@@ -3,22 +3,22 @@
 @tailwind utilities;
 
 .cell-closed {
-	background-color: #ccc;
-	border-top: 2px solid #eee;
-	border-left: 2px solid #eee;
-	border-right: 2px solid #aaa;
-	border-bottom: 2px solid #aaa;
+  background-color: #ccc;
+  border-top: 2px solid #eee;
+  border-left: 2px solid #eee;
+  border-right: 2px solid #aaa;
+  border-bottom: 2px solid #aaa;
 }
 
 .cell-closed:hover {
-	opacity: 60%;
+  opacity: 60%;
 }
 
 .cell-opened {
-	background-color: #bbb;
-	border: 1px solid #aaa;
+  background-color: #bbb;
+  border: 1px solid #aaa;
 }
 
 .cell-opened:hover {
-	opacity: 80%;
+  opacity: 80%;
 }
