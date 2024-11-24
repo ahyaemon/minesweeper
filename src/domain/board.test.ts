@@ -5,7 +5,12 @@ import {
   open_cells,
   push_cand_mutable,
 } from "./board"
-import { type Cell, create_mine_cell, create_number_cell } from "./cell"
+import {
+  type Cell,
+  create_mine_cell,
+  create_number_cell,
+  is_mine,
+} from "./cell"
 import type { Coord } from "./coord"
 
 describe("push_cand_mutable", () => {
@@ -117,7 +122,7 @@ describe("is_all_cleared", () => {
   const create_all_opened_board = (): Board => {
     const board = create_board().map((row) => {
       return row.map((cell) => {
-        if (cell.type === "mine") {
+        if (is_mine(cell)) {
           return cell
         }
         const new_cell: Cell = {
@@ -140,9 +145,9 @@ describe("is_all_cleared", () => {
   })
 
   test("fail", () => {
-    // const board = create_all_opened_board()
-    // board[0][0].status = "closed"
-    // const actual = is_all_opened(board)
-    // expect(actual).toBeFalsy()
+    const board = create_all_opened_board()
+    board[0][0].status = "closed"
+    const actual = is_all_opened(board)
+    expect(actual).toBeFalsy()
   })
 })

@@ -1,50 +1,79 @@
 import { deep_copy } from "../utils/object"
+import {
+  type Cell,
+  increment_number_cell,
+  is_closed,
+  is_flagged,
+  is_mine,
+  is_number,
+  is_opened,
+} from "./cell"
 import { type Coord, get_around_coords } from "./coord"
 import type { Row } from "./row"
 
 export type Board = Row[]
 
-function push_cand_mutable(cands: Coord[], coord: Coord, board: Board) {
-  const [irow, icol] = coord
-  const row = board[irow]
+function get_cell_or_null(board: Board, [i_row, i_col]: Coord): Cell | null {
+  const row = board[i_row]
 
   if (!row) {
-    return
+    return null
   }
 
-  const cell = row[icol]
+  const cell = row[i_col]
+
+  return cell ?? null
+}
+
+export function increment_number_cell_mutable(board: Board, coord: Coord) {
+  const cell = get_cell_or_null(board, coord)
 
   if (!cell) {
     return
   }
 
-  if (cell.type === "mine") {
+  if (!is_number(cell)) {
     return
   }
 
-  if (cell.status === "closed") {
+  const [i_row, i_col] = coord
+  board[i_row][i_col] = increment_number_cell(cell)
+}
+
+function push_cand_mutable(cands: Coord[], coord: Coord, board: Board) {
+  const cell = get_cell_or_null(board, coord)
+  if (!cell) {
+    return
+  }
+
+  if (is_mine(cell)) {
+    return
+  }
+
+  if (is_closed(cell) || is_flagged(cell)) {
     cell.status = "opened"
     cands.push(coord)
   }
+}
+
+function get_cell(board: Board, [i_row, i_col]: Coord): Cell {
+  return board[i_row][i_col]
 }
 
 export function open_cells(board: Board, coord: Coord): Board {
   const cands: Coord[] = [coord]
   const new_board = deep_copy(board)
 
-  new_board[coord[0]][coord[1]].status = "opened"
+  get_cell(new_board, coord).status = "opened"
 
   while (cands.length > 0) {
     const cand = cands.pop()
-
     if (!cand) {
       break
     }
 
-    const [irow, icol] = cand
-    const cell = new_board[irow][icol]
-
-    if (cell.type === "mine") {
+    const cell = get_cell(new_board, cand)
+    if (is_mine(cell)) {
       throw Error("Invalid Mine")
     }
 
@@ -64,10 +93,10 @@ export function open_cells(board: Board, coord: Coord): Board {
 export function is_all_opened(board: Board): boolean {
   return board.every((row) => {
     return row.every((cell) => {
-      if (cell.type === "mine") {
+      if (is_mine(cell)) {
         return true
       }
-      return cell.status === "opened"
+      return is_opened(cell)
     })
   })
 }

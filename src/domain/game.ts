@@ -1,23 +1,37 @@
 import { create_random_array, head, seq } from "../utils/array"
 import { deep_copy } from "../utils/object"
-import { type Board, is_all_opened, open_cells } from "./board"
+import {
+  type Board,
+  increment_number_cell_mutable,
+  is_all_opened,
+  open_cells,
+} from "./board"
 import {
   type Cell,
+  CellStatus,
   create_mine_cell,
   create_number_cell,
-  increment_number_cell,
   is_closed,
   is_flagged,
+  is_mine,
   is_number,
   is_opened,
 } from "./cell"
-import type { Coord } from "./coord"
+import { type Coord, get_around_coords } from "./coord"
+
+const GameStatus = {
+  playing: "playing",
+  gameover: "gameover",
+  cleared: "cleared",
+} as const
+
+type GameStatus = keyof typeof GameStatus
 
 export type Game = {
   board: Board
   n_row: number
   n_col: number
-  status: "playing" | "gameover" | "cleared"
+  status: GameStatus
 }
 
 export function create_all_zero_board(n_row: number, n_col: number): Game {
@@ -33,7 +47,7 @@ export function create_all_zero_board(n_row: number, n_col: number): Game {
 export function is_empty(game: Game): boolean {
   for (const row of game.board) {
     for (const cell of row) {
-      if (cell.type === "mine") {
+      if (is_mine(cell)) {
         return false
       }
     }
@@ -46,7 +60,7 @@ function create_mine_coords(
   n_col: number,
   n_mine: number,
   exclusion_coord: Coord,
-): number[][] {
+): [number, number][] {
   const len = n_row * n_col
 
   if (n_mine > len) {
@@ -67,30 +81,6 @@ function create_mine_coords(
   })
 }
 
-function increment_number_cell_mutable(
-  i_row: number,
-  i_col: number,
-  board: Cell[][],
-) {
-  const row = board[i_row]
-
-  if (!row) {
-    return
-  }
-
-  const cell = row[i_col]
-
-  if (!cell) {
-    return
-  }
-
-  if (cell.type !== "number") {
-    return
-  }
-
-  board[i_row][i_col] = increment_number_cell(cell)
-}
-
 export function place_mine(
   game: Game,
   n_mine: number,
@@ -109,30 +99,13 @@ export function place_mine(
   for (const mine_coord of mine_coords) {
     const i_row = mine_coord[0]
     const i_col = mine_coord[1]
-    board[i_row][i_col] = create_mine_cell([i_row, i_col])
+    board[i_row][i_col] = create_mine_cell(mine_coord)
   }
 
   // 地雷の周りのマスの数を数える
-  for (const mine_coord of mine_coords) {
-    const i_row = mine_coord[0]
-    const i_col = mine_coord[1]
-
-    // 上
-    increment_number_cell_mutable(i_row - 1, i_col, board)
-    // 右上
-    increment_number_cell_mutable(i_row - 1, i_col + 1, board)
-    // 右
-    increment_number_cell_mutable(i_row, i_col + 1, board)
-    // 右下
-    increment_number_cell_mutable(i_row + 1, i_col + 1, board)
-    // 下
-    increment_number_cell_mutable(i_row + 1, i_col, board)
-    // 左下
-    increment_number_cell_mutable(i_row + 1, i_col - 1, board)
-    // 左
-    increment_number_cell_mutable(i_row, i_col - 1, board)
-    // 左上
-    increment_number_cell_mutable(i_row - 1, i_col - 1, board)
+  const around_coords = mine_coords.flatMap((c) => get_around_coords(c))
+  for (const around_coord of around_coords) {
+    increment_number_cell_mutable(board, around_coord)
   }
 
   return new_game
@@ -145,12 +118,11 @@ export function get_cell(game: Game, coord: Coord): Cell {
 export function click_cell(game: Game, coord: Coord): Game {
   const clicked_cell = get_cell(game, coord)
 
-  if (clicked_cell.type === "mine") {
+  if (is_mine(clicked_cell)) {
     // mine の場合、終わり
     const new_game = deep_copy(game)
-    const new_board = new_game.board
-    new_board[coord[0]][coord[1]].status = "opened"
-    new_game.status = "gameover"
+    get_cell(new_game, coord).status = CellStatus.opened
+    new_game.status = GameStatus.gameover
     return new_game
   }
 
@@ -158,10 +130,10 @@ export function click_cell(game: Game, coord: Coord): Game {
     // 0 より大きい number の場合、そのマスだけ空けて返す
     const new_game = deep_copy(game)
     const new_board = new_game.board
-    new_board[coord[0]][coord[1]].status = "opened"
+    get_cell(new_game, coord).status = CellStatus.opened
 
     if (is_all_opened(new_board)) {
-      new_game.status = "cleared"
+      new_game.status = GameStatus.cleared
     }
 
     return new_game
@@ -173,31 +145,31 @@ export function click_cell(game: Game, coord: Coord): Game {
   new_game.board = new_board
 
   if (is_all_opened(new_board)) {
-    new_game.status = "cleared"
+    new_game.status = GameStatus.cleared
   }
 
   return new_game
 }
 
 export function is_gameover(game: Game): boolean {
-  return game.status === "gameover"
+  return game.status === GameStatus.gameover
 }
 
 export function is_cleared(game: Game): boolean {
-  return game.status === "cleared"
+  return game.status === GameStatus.cleared
 }
 
 function add_flag(game: Game, coord: Coord): Game {
   const new_game = deep_copy(game)
   const new_cell = get_cell(new_game, coord)
-  new_cell.status = "flagged"
+  new_cell.status = CellStatus.flagged
   return new_game
 }
 
 function remove_flag(game: Game, coord: Coord): Game {
   const new_game = deep_copy(game)
   const new_cell = get_cell(new_game, coord)
-  new_cell.status = "closed"
+  new_cell.status = CellStatus.closed
   return new_game
 }
 

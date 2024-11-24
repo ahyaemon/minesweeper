@@ -1,4 +1,10 @@
-import type { Cell } from "../../domain/cell"
+import {
+  type Cell,
+  is_closed,
+  is_flagged,
+  is_number,
+  is_opened,
+} from "../../domain/cell"
 import { useClickCell, useGame, useRightClickCell } from "../../states/game"
 
 type CellTdProps = {
@@ -6,15 +12,15 @@ type CellTdProps = {
 }
 
 function get_cell_display(cell: Cell): string {
-  if (cell.status === "closed") {
+  if (is_closed(cell)) {
     return ""
   }
 
-  if (cell.status === "flagged") {
+  if (is_flagged(cell)) {
     return "🚩"
   }
 
-  if (cell.type === "number") {
+  if (is_number(cell)) {
     if (cell.n === 0) {
       return ""
     }
@@ -62,11 +68,13 @@ function OpenedCellTd({ cell }: CellTdProps) {
 }
 
 export function CellTd({ cell }: CellTdProps) {
-  const is_opened = cell.status === "opened"
-
   return (
     <div className="w-8 h-8">
-      {is_opened ? <OpenedCellTd cell={cell} /> : <ClosedCellTd cell={cell} />}
+      {is_opened(cell) ? (
+        <OpenedCellTd cell={cell} />
+      ) : (
+        <ClosedCellTd cell={cell} />
+      )}
     </div>
   )
 }
